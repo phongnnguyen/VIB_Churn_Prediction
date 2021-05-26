@@ -1,4 +1,5 @@
 # VIB_Churn_Prediction
+The repository for VIB contest 
 The repository for VIB context 
 project_name
 ├── data
