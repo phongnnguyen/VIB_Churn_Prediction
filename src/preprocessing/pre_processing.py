@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings("ignore")
 
 class Processing_Data:
     def __init__(self,DataPath):
@@ -49,13 +51,13 @@ class Define_Churn_Users:
         return last_purchase_customer
 
 
-    def label_churn_for_user(self,last_purchase_day_num, init_noDate = 10):
+    def label_churn_for_user(self,last_purchase_day_num, init_noDate = 10,filename = 'Combine_Data_VIB.csv'):
         # Initial label churn or not churn
         last_purchase_day_num['LABEL'] = 0
         last_purchase_day_num['LABEL'][last_purchase_day_num['LAST_PURCHASE'] > 12] = 1
 
         S = self.endDate - timedelta(days=12)
-        df_before_S =  self.df_activity [pd.to_datetime(last_purchase_day_num['ACTIVITY_DATE'], infer_datetime_format=True) < S]
+        df_before_S =  self.df_activity[pd.to_datetime(self.df_activity['ACTIVITY_DATE'], infer_datetime_format=True) < S]
 
         last_purchase_before_S = df_before_S.sort_values(by="ACTIVITY_DATE").drop_duplicates(subset=["CUSTOMER_NUMBER"],
                                                                                              keep="last")
@@ -72,7 +74,6 @@ class Define_Churn_Users:
                                                          & (pd.to_datetime(last_purchase_before_S['ACTIVITY_DATE'],
                                                                            infer_datetime_format=True) < S)]
             count_label = last_purchase_day_num.loc[purchase_before_Sd['CUSTOMER_NUMBER']]['LABEL'].value_counts()
-            label_churn = count_label[1]
             label_nonchurn = count_label[0]
 
             count_label_between = last_purchase_day_num.loc[purchase_between_Sd['CUSTOMER_NUMBER']]['LABEL'].value_counts()
@@ -81,7 +82,6 @@ class Define_Churn_Users:
             except:
                 label_churn_between = 0
 
-            label_nonchurn_between = count_label_between[0]
 
             epsilon_FP = label_nonchurn / \
                          last_purchase_day_num.loc[last_purchase_before_S['CUSTOMER_NUMBER']]['LABEL'].value_counts()[0]
@@ -97,6 +97,6 @@ class Define_Churn_Users:
         last_purchase_day_num['LABEL'] = 0
         last_purchase_day_num['LABEL'][
             last_purchase_day_num['LAST_PURCHASE'] > init_noDate + highest_number_of_inactive] = 1
-        last_purchase_day_num.to_csv('data/Combine_Data_VIB.csv')
+        last_purchase_day_num.to_csv('data/'+filename)
         return last_purchase_day_num
 
