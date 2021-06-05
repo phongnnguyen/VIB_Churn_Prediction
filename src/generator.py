@@ -1,12 +1,13 @@
-from src.preprocessing.pre_processing import Define_Churn_Users, Processing_Data
+from src.preprocessing.pre_processing \
+    import Define_Churn_Users, Processing_Data
 import pandas as pd
 from datetime import datetime
-
+import os
 if __name__ == '__main__':
     df_activity = pd.read_csv('data/Activity.csv')
     df_customer = pd.read_csv('data/1.Data_Customer.csv')
     df_transaction = pd.read_csv('data/2.Data_MyVIB_Transaction.csv')
-    df_activity = df_activity.iloc[:10000,:]
+    # df_activity = df_activity.iloc[:10000,:]
 
     endDate = datetime.strptime(max(df_activity['ACTIVITY_DATE']), '%Y-%m-%d')
     LABEL = False
@@ -20,12 +21,16 @@ if __name__ == '__main__':
             filename='Combine_Data_VIB.csv')
     else:
         df_factor_and_label = pd.read_csv('data/Combine_Data_VIB.csv')
-        ProcessingData = Processing_Data(endDate,
-                                         df_activity,
-                                         df_customer = df_customer,
-                                         df_transaction = df_transaction)
-        df_combine_information = \
-            ProcessingData.combine_data_from_multiple_table()
+        df_factor_and_label.index = df_factor_and_label['CUSTOMER_NUMBER']
 
-        df_combine_information = df_combine_information.join(df_factor_and_label['LABEL'])
+    ProcessingData = Processing_Data(endDate,
+                                     df_activity,
+                                     df_customer = df_customer,
+                                     df_transaction = df_transaction)
+    df_combine_information = \
+        ProcessingData.combine_data_from_multiple_table()
+
+    df_combine_information = \
+        df_combine_information.join(df_factor_and_label['LABEL'])
+    if not os.path.exists('data/combine_information.csv'):
         df_combine_information.to_csv('data/' + 'combine_information.csv')

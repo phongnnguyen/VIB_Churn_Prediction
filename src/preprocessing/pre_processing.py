@@ -34,17 +34,19 @@ class Processing_Data:
         # df_merging_activity['listAct'] = [ele.split(",") for ele in
         #                                   df_merging_activity['ACTIVITY_NAME']]
         # calculate age
+        # fix wrong DOB
+        VIB_customer_resINDX = self.reindex_dataframe(self.df_customer)
+        VIB_customer_resINDX.at[273643, 'DATE_OF_BIRTH'] = \
+            '1996-07-28 00:00:00'
         age_cal = pd.DataFrame((self.ldYear - pd.to_datetime(
-            self.reindex_dataframe
-            (self.df_customer).loc[df_merging_activity['CUSTOMER_NUMBER']][
+            VIB_customer_resINDX.loc[df_merging_activity['CUSTOMER_NUMBER']][
                 'DATE_OF_BIRTH'])).astype('<m8[Y]'))
         age_cal.columns = ['AGE']
 
         df_merging_activity = df_merging_activity.join(age_cal)  # Join age
         # merging information of customer
         df_merging_activity = df_merging_activity.join(
-            self.reindex_dataframe
-            (self.df_customer).loc[df_merging_activity['CUSTOMER_NUMBER']][
+            VIB_customer_resINDX.loc[df_merging_activity['CUSTOMER_NUMBER']][
                 ['DATE_OF_BIRTH', 'CLIENT_SEX', 'STAFF_VIB',
                  'EB_REGISTER_CHANNEL', 'SMS', 'VERIFY_METHOD']])
         # add list of activity
