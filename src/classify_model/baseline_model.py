@@ -1,8 +1,12 @@
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
-from sklearn.neighbors import KNeighborsClassifier
+
 from sklearn import metrics
+from sklearn import preprocessing
+import pickle
 def hour_to_shift(series):
     shift = []
     for v in series:
@@ -47,9 +51,80 @@ def EB_register_chanel(series):
         else:
             ERC.append(4)
     return ERC
+def standardize(df):
+    x = df.values #returns a numpy array
+    min_max_scaler = preprocessing.MinMaxScaler()
+    x_scaled = min_max_scaler.fit_transform(x)
+    return x_scaled
 
-# processing data before training
+def KNN_model(X_train, y_train, X_test, y_test, save = True, plotting = False):
+    from sklearn.neighbors import KNeighborsClassifier
+    error_rate = []
+    # Will take some time
+    for i in range(1, 30):
+        knn = KNeighborsClassifier(n_neighbors=i)
+        knn.fit(X_train, y_train)
+        pred_i = knn.predict(X_test)
+        error_rate.append(np.mean(pred_i != y_test))
 
+    knn = KNeighborsClassifier(n_neighbors=np.argmin(error_rate))
+    knn.fit(X_train, y_train)
+    y_pred = knn.predict(X_test)
+    if save:
+        KNNPickle = open('model/KNN_model', 'wb')
+        pickle.dump(knn, KNNPickle)
+    # Model Accuracy, how often is the classifier correct?
+    accuracy = metrics.accuracy_score(y_test, y_pred)
+    print("Accuracy: %.2f%%" % (accuracy * 100.0))
+    if plotting:
+        plt.figure(figsize=(10,6))
+        plt.plot(range(1,30), error_rate, color='blue', linestyle='dashed', marker='o',
+                 markerfacecolor='red', markersize=10)
+        plt.title('Error Rate vs. K Value')
+        plt.xlabel('K')
+        plt.ylabel('Error Rate')
+
+    return accuracy
+
+
+def Logistic_model(X_train, y_train, X_test, y_test, save = True):
+    from sklearn.linear_model import LogisticRegression
+    logreg = LogisticRegression()
+    # fit the model with data
+    logreg.fit(X_train,y_train)
+    y_pred=logreg.predict(X_test)
+    # # Model Accuracy, how often is the classifier correct?
+    accuracy = metrics.accuracy_score(y_test, y_pred)
+    print("Accuracy: %.2f%%" % (accuracy * 100.0))
+
+    if save:
+        LGTPickle = open('model/Logistic_model', 'wb')
+        pickle.dump(logreg, LGTPickle)
+        # load the model from disk
+        # loaded_model = pickle.load(open('Logistic_model', 'rb'))
+        # result = loaded_model.predict(X_test)
+    return accuracy
+
+def XGBOOST_model(X_train, y_train, X_test, y_test, save = True):
+    from xgboost import XGBClassifier
+    # fit model no training data
+    model = XGBClassifier(learning_rate = 0.1, n_estimators=1000, max_depth=5,
+                           min_child_weight=1, gamma=0,subsample=0.8,
+                           colsample_bytree=0.8, objective = 'binary:logistic',
+                           nthread=4, scale_pos_weight=1, seed=27)
+    model.fit(X_train, y_train)
+    # make predictions for test data
+    y_pred = model.predict(X_test)
+    predictions = [round(value) for value in y_pred]
+    # evaluate predictions
+    accuracy = metrics.accuracy_score(y_test, predictions)
+    print("Accuracy: %.2f%%" % (accuracy * 100.0))
+    if save:
+        XGBPickle = open('model/XGBOOST_model', 'wb')
+        pickle.dump(model, XGBPickle)
+    return accuracy
+
+# # Preprocessing data befor training
 df = pd.read_csv('data/combine_information.csv')
 df = df.drop('CUSTOMER_NUMBER.1',axis=1)
 # remove extreme Age
@@ -69,20 +144,17 @@ df_final = pd.concat([df_nonchurn_sample, df_churn])
 df_final = shuffle(df_final)
 
 # Training
-
 X = df_final[['numAct','AGE','CLIENT_SEX','EB_REGISTER_CHANNEL',
                         'DAY_OF_WEEK','ACTIVITY_HOUR','TRANS_AMOUNT']]
 Y = df_final['LABEL']
 
+# Split train test data set
 X_train, X_test, y_train, y_test = \
     train_test_split(X, Y, test_size=0.3) # 70% training and 30% test
 
-# Build model classify
-
-knn = KNeighborsClassifier(n_neighbors=5)
-knn.fit(X_train, y_train)
-y_pred = knn.predict(X_test)
-# Model Accuracy, how often is the classifier correct?
-print("Accuracy:",metrics.accuracy_score(y_test, y_pred))
+# Run model
+# accuracy = KNN_model(X_train,y_train,X_test,y_test)
+# accuracy = Logistic_model(X_train,y_train,X_test,y_test)
+accuracy = XGBOOST_model(X_train,y_train,X_test,y_test)
 
 
