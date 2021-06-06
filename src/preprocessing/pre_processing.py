@@ -23,6 +23,19 @@ class Processing_Data:
         df.index = df['CUSTOMER_NUMBER']
         return df
 
+    def hour_to_shift(self, series):
+        shift = []
+        for v in series:
+            if 5 >= v >= 0:
+                shift.append(1)
+            elif 5 > v >= 12:
+                shift.append(2)
+            elif 12 > v >= 18:
+                shift.append(3)
+            else:
+                shift.append(4)
+        return shift
+
     def combine_data_from_multiple_table(self):
         df_merging_activity = self.df_activity.groupby(['CUSTOMER_NUMBER'])[
             'ACTIVITY_NAME'].apply(','.join).reset_index()
@@ -113,10 +126,9 @@ class Define_Churn_Users:
             'CUSTOMER_NUMBER']
 
         # Calculate number inactive day from last purchase of user
-        last_purchase_customer['LAST_PURCHASE'] = (
-                                                              last_day_of_year - pd.to_datetime(
-                                                          last_purchase_customer[
-                                                              'ACTIVITY_DATE'])).dt.days - 1
+        last_purchase_customer['LAST_PURCHASE'] = \
+            (last_day_of_year - pd.to_datetime(last_purchase_customer[
+                                                'ACTIVITY_DATE'])).dt.days - 1
         last_purchase_customer['LAST_PURCHASE'][
             last_purchase_customer['LAST_PURCHASE'] < 0] = 0
 
